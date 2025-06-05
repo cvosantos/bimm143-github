@@ -11,3 +11,19 @@ My classwork from [BIMM143 S25](https://bioboot.github.io/bimm143_S25/) at UC Sa
 
 - 08 [Breast Cancer Mini Project](https://github.com/cvosantos/bimm143-github/blob/main/class08/class08.md)
 
+- 09 [Halloween Candy Mini-Project](https://github.com/cvosantos/bimm143-github/blob/main/class09/class09.md)
+
+- 10 [Structural Bioinformatics (pt1)](https://github.com/cvosantos/bimm143-github/blob/main/class10/class10.md)
+  
+- 11 [Protein Structure Prediction with AlphaFold](https://github.com/cvosantos/bimm143-github/blob/main/class11/class11.md)
+  
+- 12 [Genome informatics and high throughput sequencing](https://github.com/cvosantos/bimm143-github/blob/main/class12/class12.md)
+  
+- 13 [Transcriptomics and the analysis of RNA-Seq data](https://github.com/cvosantos/bimm143-github/blob/main/class13/class13.md)
+  
+- 14 [RNASeq mini-project](https://github.com/cvosantos/bimm143-github/blob/main/class14/class14.md)
+  
+- 17 [Analyzing sequencing data in the cloud](https://github.com/cvosantos/bimm143-github/blob/main/class17/class17.md)
+
+- 18 [Pertussis mini project](https://github.com/cvosantos/bimm143-github/blob/main/class18/class18.md)
+
