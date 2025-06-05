@@ -1,0 +1,282 @@
+---
+title: "Class 13: Transcriptomics and the analysis of RNA-Seq data"
+author: "Cienna Santos (PID: A17581026)"
+format: pdf
+---
+
+The data for this hands-on session comes from a published RNA-seq experiment where airway smooth muscle cells were treated with dexamethasone, a synthetic glucocorticoid steroid with anti-inflammatory effects (Himes et al. 2014).
+
+## Import/Read the data from Himes et al.
+
+```{r}
+counts <- read.csv("airway_scaledcounts.csv", row.names=1)
+metadata <- read.csv("airway_metadata.csv")
+```
+
+```{r}
+head(metadata)
+```
+
+Santify check on correspondence of counts and metadata
+
+```{r}
+all(metadata$id == colnames(counts))
+```
+
+> Q1. How many genes are in this dataset?
+
+There are `r nrow(counts)` genes in this dataset.
+
+> Q2. How many 'control' cell lines do we have?
+
+```{r}
+n.control <- sum(metadata$dex == "control")
+```
+
+There are `r n.control` control cell lines in this dataset.
+
+### Extract and summarize the control samples
+
+To find out where the control samples are, we need the metadata.
+
+```{r}
+control <- metadata[metadata$dex == "control", ]
+control.counts <- counts[,control$id]
+control.mean <- rowMeans(control.counts)
+head(control.mean)
+```
+
+## Extract and summarize the treated (i.e. drug) samples
+
+```{r}
+treated <- metadata[metadata$dex == "treated", ]
+treated.counts <- counts[,treated$id]
+treated.mean <- rowMeans(treated.counts)
+```
+
+Store these results together in a new data frame called `mean counts`
+
+```{r}
+meancounts <- data.frame(control.mean, treated.mean)
+```
+
+Let's make a plot to explore the results alittle
+
+```{r}
+plot(meancounts[,1], meancounts[,2])
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(meancounts) +
+  aes(control.mean, treated.mean) +
+  geom_point()
+```
+
+We'll make a log-log plot to draw out this skewed data and see what is going on.
+
+```{r}
+plot(meancounts[,1], meancounts[,2], log='xy',
+     xlab="log of control counts",
+     ylab="log of treated counts")
+```
+
+We often log2 transformations when dealing with this sort of data.
+
+```{r}
+library(ggplot2)
+
+ggplot(meancounts) +
+  aes(control.mean, treated.mean) +
+  geom_point() +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(x = "Log of control mean", y = "Log of treated mean")
+```
+
+```{r}
+log2(20/20)
+```
+
+```{r}
+log2(40/20)
+```
+
+```{r}
+log2(20/40)
+```
+
+```{r}
+log2(80/20)
+```
+
+This log2 transformation has this nice property where if there is no change the log2 value will be zero and if it is double the log2 value will be 1 and if halved it will be -1.
+
+So let's add a log2 fold change column to our results so far.
+
+```{r}
+meancounts$log2fc <- log2(meancounts$treated.mean / meancounts$control.mean)
+head(meancounts)
+```
+
+We need to get rid of zero count genes that we can not say anything about.
+
+```{r}
+zero.values <- (which(meancounts[,1:2]==0, arr.ind=TRUE))
+to.rm <- unique(zero.values[,1])
+mycounts <- meancounts[-to.rm,]
+```
+
+```{r}
+head(mycounts)
+```
+
+How many genes are remaining?
+
+```{r}
+nrow(mycounts)
+```
+
+# Use fold change to see up and down regulated genes.
+
+A common threshold used for calling something differentially expressed is a log2(FoldChange) of greater than 2 or less than -2. Let’s filter the dataset both ways to see how many genes are up or down-regulated.
+
+```{r}
+sum(mycounts$log2fc > 2)
+```
+
+and down regulated
+
+```{r}
+sum(mycounts$log2fc < -2)
+```
+
+Do we trust these results? Not fully because we don't yet know if these changes are significant...
+
+# DESeq2 analysis
+
+Let's do this the right way. DESeq2 is an R package specifically for analyzing count-based NGS data like RNA-seq.
+
+```{r}
+# load up DESeq2
+library(DESeq2)
+
+dds <- DESeqDataSetFromMatrix(countData=counts,
+                       colData=metadata,
+                       design=~dex)
+```
+
+```{r}
+dds <- DESeq(dds)
+```
+
+```{r}
+res <- results(dds)
+res
+```
+
+We can get some basic summary tallies using the `summary()` function
+
+```{r}
+summary(res, alpha=0.05)
+```
+
+# Volcano plot
+
+Make a summary plot of our results.
+
+```{r}
+plot(res$log2FoldChange,-log(res$padj))
+```
+
+```{r}
+log(0.1)
+log(0.005)
+```
+
+```{r}
+write.csv(res, file="DESeq2.results.csv")
+```
+
+```{r}
+library("AnnotationDbi")
+library("org.Hs.eg.db")
+```
+
+```{r}
+columns(org.Hs.eg.db)
+```
+
+Add a few more ID mappings including "GENENAME" and "ENTREXID".
+
+```{r}
+res$name <- mapIds(x=org.Hs.eg.db,
+                   keys=rownames(res),
+                   keytype = "ENSEMBL",
+                   column = "GENENAME")
+
+res$entrez <- mapIds(x=org.Hs.eg.db,
+                   keys=rownames(res),
+                   keytype = "ENSEMBL",
+                   column = "ENTREZID")
+
+head(res)
+```
+
+Be sure to save our annotated results to a file.
+
+```{r}
+write.csv(res, file="my_annotated_results.csv")
+```
+
+# Pathway analysis
+
+Install the packages we need for pathway analysis: Run in your R console (i.e. not your Quarto doc!)
+`BiocManager::install((c("pathview", "gage", "gageData")))`
+
+```{r, message=FALSE}
+library(gage)
+library(gageData)
+library(pathview)
+```
+
+Let's peek at the gageData
+
+```{r}
+data(kegg.sets.hs)
+
+#Examine the first 2 pathways in this kegg set for humans
+head(kegg.sets.hs, 2)
+```
+
+To run pathway analysis we will use the `gage()` function and it requires a wee "vector of importance". We will use our Log2FC results from our `res` object.
+
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+
+```{r}
+keggres = gage(foldchanges, gsets=kegg.sets.hs)
+```
+
+What is in the returned `keggres` object
+
+```{r}
+attributes(keggres)
+```
+
+```{r}
+head(keggres$less)
+```
+
+We can pass our foldchanges vector (our results) together with any of these highlighted pathway IDs to see how our genes overlap the pathway.
+
+```{r}
+pathview(gene.dat=foldchanges, pathway.id="hsa05310")
+```
+
+![The Asthma pathway overlaps with our differentially expressed genes](hsa05310.pathview.png)
+

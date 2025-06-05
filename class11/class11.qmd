@@ -1,0 +1,182 @@
+---
+title: "Class 11: Protein Structure Prediction with AlphaFold"
+author: "Cienna Santos (PID: A17581026)"
+format: pdf
+---
+
+Here we read the results from AlphaFold and try to interpret all the models and quality score metrics:
+
+```{r}
+library(bio3d)
+
+pth <- "hivdimer_23119/"
+pdb.files <- list.files(path = pth, full.names = TRUE, pattern = ".pdb")
+```
+
+Align and superpose all these models
+
+```{r}
+file.exists(pdb.files)
+```
+
+```{r}
+pdbs <- pdbaln(pdb.files, fit = TRUE, exefile="msa")
+```
+
+```{r}
+library(bio3dview)
+#view.pdbs(pdbs)
+```
+
+```{r}
+plot(pdbs$b[1,], typ="l", ylim=c(0,100))
+lines(pdbs$b[2,], typ="l", col="blue")
+lines(pdbs$b[3,], typ="l", col="green")
+lines(pdbs$b[4,], typ="l", col="orange")
+lines(pdbs$b[5,], typ="l", col="red")
+```
+
+# Predicted Alignment Error for domains
+
+```{r}
+library(jsonlite)
+
+# Listing of all PAE JSON files
+pae_files <- list.files(path=pth,
+                        pattern=".*model.*\\.json",
+                        full.names = TRUE)
+```
+
+```{r}
+pae1 <- read_json(pae_files[1],simplifyVector = TRUE)
+pae5 <- read_json(pae_files[5],simplifyVector = TRUE)
+
+attributes(pae1)
+```
+
+```{r}
+# Per-residue pLDDT scores 
+#  same as B-factor of PDB..
+head(pae1$plddt) 
+```
+
+```{r}
+pae1$max_pae
+```
+
+```{r}
+pae5$max_pae
+```
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)")
+```
+
+```{r}
+plot.dmat(pae5$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+We should really plot all of these using the same z range. Here is the model 1 plot again but this time using the same data range as the plot for model 5:
+
+```{r}
+plot.dmat(pae1$pae, 
+          xlab="Residue Position (i)",
+          ylab="Residue Position (j)",
+          grid.col = "black",
+          zlim=c(0,30))
+```
+
+# Score Residue Conservation from alignment file
+
+AlphaFold returns its large alignment file used for analysis
+Here we read this file and score conservation per position
+
+```{r}
+aln_file <- list.files(path=pth,
+                       pattern=".a3m$",
+                        full.names = TRUE)
+aln_file
+```
+
+```{r}
+aln <- read.fasta(aln_file[1], to.upper = TRUE)
+```
+
+How many sequences are in this alignment
+
+```{r}
+dim(aln$ali)
+```
+
+We can score residue conservation in the alignment with the conserv() function.
+
+```{r}
+sim <- conserv(aln)
+```
+
+```{r}
+plotb3(sim[1:99],
+       ylab="Conservation Score")
+```
+
+Find the consensus sequence at a very high cut-off to find invariant residues
+
+```{r}
+con <- consensus(aln, cutoff = 0.9)
+con$seq
+```
+
+```{r}
+rd <- rmsd(pdbs, fit=T)
+```
+
+```{r}
+range(rd)
+```
+
+Draw a heatmap of these RMSD matrix values
+
+```{r}
+library(pheatmap)
+
+colnames(rd) <- paste0("m",1:5)
+rownames(rd) <- paste0("m",1:5)
+pheatmap(rd)
+```
+
+# Alphafold results for my project sequence
+
+```{r}
+library(bio3d)
+
+ptht <- "test_50fcd/"
+pdbt.files <- list.files(path = ptht, full.names = TRUE, pattern = ".pdb")
+```
+
+Align and superpose all these models
+
+```{r}
+file.exists(pdbt.files)
+```
+
+```{r}
+pdbst <- pdbaln(pdbt.files, fit = TRUE, exefile="msa")
+```
+
+```{r}
+library(bio3dview)
+#view.pdbs(pdbst)
+```
+
+![Coverage plot of my project sequence](test_50fcd/test_50fcd_coverage.png)
+
+![Predicted alignment error of my project sequence](test_50fcd/test_50fcd_pae.png)
+
+![pLDDT of my project sequence](test_50fcd/test_50fcd_plddt.png)
+

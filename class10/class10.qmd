@@ -1,0 +1,173 @@
+---
+title: "Class 10: Structural Bioinformatics (pt1)"
+author: "Cienna Santos (PID: A17581026)"
+format: pdf
+toc: true
+---
+
+## 1. The PDB Database
+
+The main repository of biomolecular strucutre data is called the [Protein Data Bank](https://www.rcsb.org/) (PDB for short). It is the second oldest database (after GenBank).
+
+What is currently in the PDB?
+
+```{r}
+stats <- read.csv("Data_Export_Summary.csv")
+stats
+```
+
+
+> Q1: What percentage of structures in the PDB are solved by X-Ray and Electron Microscopy.
+
+```{r}
+stats$X.ray
+```
+
+This column is all strings! Because there are commas.
+
+```{r}
+x <- stats$X.ray
+# Substitute comma for nothing
+y <- (gsub(",","",x))
+# convert to numeric
+sum(as.numeric(y))
+```
+
+Turn this snippet into a function so I can use it any time I have this comma problem. (i.e. the other columns of this `stats` table)
+
+```{r}
+comma.sum <- function(x){
+  # Substitute comma for nothing
+  y <- (gsub(",","",x))
+  
+  # convert to numeric
+  return(sum(as.numeric(y)))
+}
+```
+
+```{r}
+xray.sum <- comma.sum(stats$X.ray)
+em.sum <- comma.sum(stats$EM)
+total.sum <- comma.sum(stats$Total)
+```
+
+```{r}
+xray.sum/total.sum * 100
+```
+
+> Q2: What proportion of structures in the PDB are protein?
+
+```{r}
+rownames(stats) <- stats$Molecular.Type
+
+proteins <- comma.sum(stats["Protein (only)", "Total"])
+proteins/total.sum * 100
+```
+
+
+> Q3: Type HIV in the PDB website search box on the home page and determine how many HIV-1 protease structures are in the current PDB?
+
+1,149
+
+## 2. Visualizing with Mol-Star
+
+Explore the HIV-1 protease structure with PDB code: `1HSG` 
+Mol star homepage at: https://molstar.org/viewer/.
+
+![Figure 1. A first view of HIV-Pr](1HSG.png)
+
+> Q4: Water molecules normally have 3 atoms. Why do we see just one atom per water molecule in this structure?
+
+Because the resolution of these models are 2 Angstroms, and hydrogen is smaller than that.
+
+> Q5: There is a critical “conserved” water molecule in the binding site. Can you identify this water molecule? What residue number does this water molecule have
+
+308 water molecule. It's between the two dimers.
+
+![Figure 2. Molecular surface showing binding cavity](1HSGv2.png)
+
+> Q6: Generate and save a figure clearly showing the two distinct chains of HIV-protease along with the ligand. You might also consider showing the catalytic residues ASP 25 in each chain and the critical water (we recommend “Ball & Stick” for these side-chains). Add this figure.
+
+![Figure 3. The catatilically important ASP 25 amino acids and drug interacting HOH 308 water molecule](1HSGv3.png)
+
+## 3. Using the bio3d package in R
+
+The Bio3D package is focused on structural bioinformatics analysis and allows us to read and analyze PDB (and related) data.
+
+```{r}
+library(bio3d)
+```
+
+```{r}
+pdb <- read.pdb("1hsg")
+pdb
+```
+
+```{r}
+attributes(pdb)
+```
+
+We can see atom data with `pdb$atom`:
+
+```{r}
+head(pdb$atom)
+```
+
+```{r}
+head(pdbseq(pdb))
+```
+
+```{r} 
+# install.packages("pak")
+# pak::pak("bioboot/bio3dview")
+# install.packages("NGLVieweR")
+```
+
+We can make quick 3D viz with the `view.pdb()` function:
+
+```{r}
+library(bio3dview)
+library(NGLVieweR)
+
+#view.pdb(pdb, backgroundColor = "pink", colorScheme = "sse")
+```
+
+```{r}
+sel <- atom.select(pdb, resno=25)
+
+#view.pdb(pdb, cols=c("green", "orange"), 
+         #highlight = sel,
+         #highlight.style = "spacefill") |>
+  #setRock()
+```
+
+## Predicting functional motions of a single structure
+
+We can finish off today with a bioinformatics prediction of the funcitonal motions of a protein.
+
+We will run a Normal Mode Analysis
+
+```{r}
+adk <- read.pdb("6s36")
+adk
+```
+
+```{r}
+# Perform flexiblity prediction
+m <- nma(adk)
+```
+
+```{r}
+plot(m)
+```
+
+```{r}
+#view.nma(m)
+```
+
+We can write out a trajectory of the predicted dynamics and view this in Mol-star
+
+```{r}
+mktrj(m, file="nma.pdb")
+```
+

@@ -1,0 +1,21 @@
+Cmd to login:
+
+ssh -i ~/Downloads/bioinf_cienna.pem ubuntu@ec2-35-91-176-111.us-west-2.compute.amazonaws.com
+
+gunzip ...
+tar ..
+
+Counting:
+
+last week
+grep -c ">" Fasta.file
+
+today
+grep -c "@SRR600956" SRR600956.fastq
+
+running in background with & doesn't automatically finish, so press enter
+
+(run on local machine)
+scp -r -i ~/Downloads/bioinf_cienna.pem ubuntu@ec2-35-91-176-111.us-west-2.compute.amazonaws.com:~/class17/*_quant .
+
+do downstream analysis and PCA as homework in a quarto document
