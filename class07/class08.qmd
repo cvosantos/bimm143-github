@@ -1,0 +1,18 @@
+---
+title: "Class 8: Breast cancer mini project"
+author: "Cienna Santos (PID: A17581026)"
+format: html
+---
+
+## Background
+
+This mini-project explores unsupervised learning techniques applied to the Wisconsin Breast Cancer Diagnostic Data Set, which contains measurements of human breast mass cell nuclei. The project guides the user through exploratory data analysis, performing and interpreting Principal Component Analysis (PCA) to reduce the dimensionality of the data while retaining variance, and applying hierarchical clustering with different linkage methods. It also includes an optional section on K-means clustering for comparison. The ultimate goal is to combine PCA and clustering to better separate benign and malignant cell samples, evaluating the results using metrics like sensitivity and specificity, and finally demonstrating how to predict the classification of new samples using the developed PCA model.
+
+## Data import
+
+Our data comes from the U. of Wisconsin Medical Center.
+
+```{r}
+wisc.df <- read.csv("WisconsinCancer.csv", row.names=1)
+```
+
